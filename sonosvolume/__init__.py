@@ -1,8 +1,14 @@
 import falcon
 import json
+import os
 import soco
-
 import sys
+
+CONTENT_TYPES = {
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'text/javascript',
+}
 
 class JSONTranslator(object):
     def process_request(self, req, resp):
@@ -76,6 +82,21 @@ class SpeakersResource(object):
         resp.status = falcon.HTTP_200
         req.context['result'] = self.as_json(speaker)
 
+def static_ui(req, resp):
+    path = os.path.normpath(os.path.join(
+        os.path.dirname(__file__),
+        "static-ui",
+        req.path.lstrip("/") or "index.html"))
+    if not os.path.isfile(path):
+        print >>sys.stderr, path
+        raise falcon.HTTPNotFound()
+    resp.status = falcon.HTTP_200
+    _, ext = os.path.splitext(path)
+    resp.content_type = CONTENT_TYPES.get(ext, 'application/octet-stream')
+    with open(path, 'rb') as static_file:
+        resp.body = static_file.read()
+
 application = falcon.API(middleware=[JSONTranslator(), CORS()])
 application.add_route('/api/v1/speakers/{uid}', SpeakersResource())
 application.add_route('/api/v1/speakers', SpeakersResource())
+application.add_sink(static_ui)

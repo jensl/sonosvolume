@@ -1,0 +1,3 @@
+include sonosvolume/static-ui/*
+include sonosvolume/static-ui/static/css/*
+include sonosvolume/static-ui/static/js/*
