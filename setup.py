@@ -9,6 +9,7 @@ setup(name='sonosvolume',
       packages=['sonosvolume'],
       install_requires=[
           'falcon',
+          'python-Levenshtein',
           'soco',
           'uwsgi',
       ],

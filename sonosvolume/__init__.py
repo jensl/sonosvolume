@@ -1,5 +1,6 @@
 import falcon
 import json
+import Levenshtein
 import os
 import soco
 import sys
@@ -49,12 +50,15 @@ class SpeakersResource(object):
             for speaker in soco.discover()
         }
 
-    def as_json(self, speaker):
-        return {
+    def as_json(self, speaker, name=None):
+        result = {
             'uid': speaker.uid,
             'name': speaker.player_name,
             'volume': speaker.volume,
         }
+        if name is not None:
+            result['name_ratio'] = Levenshtein.ratio(name, result['name'])
+        return result
 
     def on_options(self, req, resp, uid=None):
         resp.status = falcon.HTTP_204
@@ -63,9 +67,10 @@ class SpeakersResource(object):
         if uid is not None:
             result = self.as_json(self.speakers[uid])
         else:
+            name = req.get_param('name')
             result = {
                 'speakers': [
-                    self.as_json(speaker)
+                    self.as_json(speaker, name=name)
                     for _, speaker in sorted(self.speakers.items())
                 ],
             }
