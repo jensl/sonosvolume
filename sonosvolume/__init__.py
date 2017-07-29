@@ -83,13 +83,12 @@ class SpeakersResource(object):
         req.context['result'] = self.as_json(speaker)
 
 def static_ui(req, resp):
+    prefix = os.path.join(os.path.dirname(__file__), 'static-ui')
     path = os.path.normpath(os.path.join(
-        os.path.dirname(__file__),
-        "static-ui",
-        req.path.lstrip("/") or "index.html"))
+        prefix,
+        req.path.lstrip("/") or 'index.html'))
     if not os.path.isfile(path):
-        print >>sys.stderr, path
-        raise falcon.HTTPNotFound()
+        path = os.path.join(prefix, 'index.html')
     resp.status = falcon.HTTP_200
     _, ext = os.path.splitext(path)
     resp.content_type = CONTENT_TYPES.get(ext, 'application/octet-stream')
