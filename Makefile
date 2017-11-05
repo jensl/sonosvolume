@@ -7,6 +7,7 @@ build-ui:
 	npm run build
 
 copy-ui:
-	git rm -r sonosvolume/static-ui && \
+	git rm -rf --quiet sonosvolume/static-ui 2>/dev/null ; \
+	rm -rf sonosvolume/static-ui && \
 	cp -r ui/build sonosvolume/static-ui && \
 	git add sonosvolume/static-ui
