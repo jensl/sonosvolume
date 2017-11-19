@@ -55,6 +55,9 @@ class SpeakersResource(object):
             'uid': speaker.uid,
             'name': speaker.player_name,
             'volume': speaker.volume,
+            'is_playing': {
+                'tv': speaker.is_playing_tv,
+            }
         }
         if name is not None:
             result['name_ratio'] = Levenshtein.ratio(name, result['name'])
@@ -83,6 +86,10 @@ class SpeakersResource(object):
 
         if 'volume' in req.context['input']:
             speaker.volume = req.context['input']['volume']
+        if 'is_playing' in req.context['input']:
+            is_playing = req.context['input']['is_playing']
+            if is_playing.get('tv') and not speaker.is_playing_tv:
+                speaker.switch_to_tv()
 
         resp.status = falcon.HTTP_200
         req.context['result'] = self.as_json(speaker)
