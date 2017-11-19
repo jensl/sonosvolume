@@ -53,6 +53,7 @@ class SpeakersResource(object):
     def as_json(self, speaker, name=None):
         result = {
             'uid': speaker.uid,
+            'speaker_info': speaker.get_speaker_info(),
             'name': speaker.player_name,
             'volume': speaker.volume,
             'is_playing': {
