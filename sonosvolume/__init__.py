@@ -1,6 +1,7 @@
+import argparse
 import falcon
 import json
-import Levenshtein
+import pylev
 import os
 import soco
 import sys
@@ -36,7 +37,7 @@ class JSONTranslator(object):
             return
         resp.content_type = 'application/json'
         resp.body = json.dumps(req.context['result'])
-        print >>sys.stderr, "JSON:", repr(req.context['result'])
+        print("JSON:", repr(req.context['result']), file=sys.stderr)
 
 class CORS(object):
     def process_response(self, req, resp, resource):
@@ -45,9 +46,12 @@ class CORS(object):
 
 class SpeakersResource(object):
     def __init__(self):
+        speakers = soco.discover()
+        if speakers is None:
+            speakers = []
         self.speakers = {
             speaker.uid: speaker
-            for speaker in soco.discover()
+            for speaker in speakers
         }
 
     def as_json(self, speaker, name=None):
@@ -61,7 +65,12 @@ class SpeakersResource(object):
             }
         }
         if name is not None:
-            result['name_ratio'] = Levenshtein.ratio(name, result['name'])
+            distance = pylev.levenshtein(name, result['name'])
+            length = max(len(name), len(result['name']))
+            if distance == 0:
+                result['name_ratio'] = 1
+            else:    
+                result['name_ratio'] = (length - distance) / length
         return result
 
     def on_options(self, req, resp, uid=None):
@@ -112,3 +121,12 @@ application = falcon.API(middleware=[JSONTranslator(), CORS()])
 application.add_route('/api/v1/speakers/{uid}', SpeakersResource())
 application.add_route('/api/v1/speakers', SpeakersResource())
 application.add_sink(static_ui)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", "-p", type=int, default=8080)
+    arguments = parser.parse_args()
+    gunicorn = os.path.join(os.path.dirname(sys.argv[0]), "gunicorn")
+    os.execv(gunicorn,
+             [gunicorn, "-b", f":{arguments.port}", "sonosvolume:application"])
+    return "failed to execute gunicorn"

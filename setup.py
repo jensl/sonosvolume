@@ -9,9 +9,14 @@ setup(name='sonosvolume',
       packages=['sonosvolume'],
       install_requires=[
           'falcon',
-          'python-Levenshtein',
+          'gunicorn',
+          'pylev',
           'soco',
-          'uwsgi',
       ],
       include_package_data=True,
-      zip_safe=False)
+      zip_safe=False,
+      entry_points={
+          'console_scripts': [
+              'sonosvolume = sonosvolume:main'
+          ]
+      })
