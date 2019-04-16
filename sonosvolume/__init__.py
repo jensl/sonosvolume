@@ -12,6 +12,8 @@ CONTENT_TYPES = {
     '.js': 'text/javascript',
 }
 
+SPEAKERS = None
+
 class JSONTranslator(object):
     def process_request(self, req, resp):
         if req.content_length in (None, 0):
@@ -46,7 +48,10 @@ class CORS(object):
 
 class SpeakersResource(object):
     def __init__(self):
-        speakers = soco.discover()
+        if SPEAKERS:
+            speakers = [soco.SoCo(address) for address in SPEAKERS.split(",")]
+        else:
+            speakers = soco.discover()
         if speakers is None:
             speakers = []
         self.speakers = {
@@ -86,6 +91,7 @@ class SpeakersResource(object):
                     self.as_json(speaker, name=name)
                     for _, speaker in sorted(self.speakers.items())
                 ],
+                'debug': SPEAKERS,
             }
 
         resp.status = falcon.HTTP_200
@@ -122,11 +128,23 @@ application.add_route('/api/v1/speakers/{uid}', SpeakersResource())
 application.add_route('/api/v1/speakers', SpeakersResource())
 application.add_sink(static_ui)
 
+default_port = 8080
+
+if "SNAP_DATA" in os.environ:
+    options_dir = os.path.join(os.environ["SNAP_DATA"], "options")
+    if os.path.isfile(os.path.join(options_dir, "port")):
+        with open(os.path.join(options_dir, "port")) as file:
+            default_port = int(file.read().strip())
+    if os.path.isfile(os.path.join(options_dir, "speakers")):
+        with open(os.path.join(options_dir, "speakers")) as file:
+            SPEAKERS = file.read().strip()
+
 def main():
+    global SPEAKERS
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", "-p", type=int, default=8080)
+    parser.add_argument("--port", "-p", type=int, default=default_port)
     arguments = parser.parse_args()
     gunicorn = os.path.join(os.path.dirname(sys.argv[0]), "gunicorn")
     os.execv(gunicorn,
-             [gunicorn, "-b", f":{arguments.port}", "sonosvolume:application"])
+             [gunicorn, "-b", ":{}".format(arguments.port), "sonosvolume:application"])
     return "failed to execute gunicorn"
