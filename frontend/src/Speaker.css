@@ -1,0 +1,57 @@
+.Speaker {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    margin: 2em 0;
+    border: 1px solid #888;
+    border-radius: 5px;
+}
+
+.Speaker-name {
+    grid-column-start: 1;
+    grid-column-end: 3;
+    grid-row-start: 1;
+    grid-row-end: 2;
+
+    padding: 0.5em 0.5em 0.5em 0.5em;
+    font-size: 2em;
+    color: #888;
+    border-bottom: 1px solid #ccc;
+}
+
+.Speaker-volume {
+    grid-column-start: 1;
+    grid-column-end: 3;
+    grid-row-start: 2;
+    grid-row-end: 3;
+
+    padding: 0 0.1em;
+    font-size: 10em;
+    font-weight: bold;
+}
+
+button {
+    background-color: transparent;
+    border: 1px solid #ccc;
+    border-bottom: 0;
+    font-size: larger;
+    padding: 0.5em;
+}
+
+.Speaker-down {
+    grid-column-start: 1;
+    grid-column-end: 2;
+    grid-row-start: 3;
+    grid-row-end: 4;
+
+    border-left: 0;
+}
+
+.Speaker-up {
+    grid-column-start: 2;
+    grid-column-end: 3;
+    grid-row-start: 3;
+    grid-row-end: 4;
+
+    border-left: 0;
+    border-right: 0;
+}

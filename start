@@ -1,0 +1,3 @@
+#!/bin/sh
+
+docker run --detach --network=host --name=sonosvolume sonosvolume:latest

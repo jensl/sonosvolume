@@ -1,8 +1,0 @@
-#!/bin/sh -e
-
-PORT="$(snapctl get port)"
-SPEAKERS="$(snapctl get speakers)"
-
-mkdir -p $SNAP_DATA/options
-echo $PORT > $SNAP_DATA/options/port
-echo $SPEAKERS > $SNAP_DATA/options/speakers

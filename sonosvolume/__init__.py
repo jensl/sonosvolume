@@ -34,36 +34,45 @@ class JSONTranslator(object):
                                    'JSON was incorrect or not encoded as '
                                    'UTF-8.')
 
-    def process_response(self, req, resp, resource):
-        if 'result' not in req.context:
+    def process_response(self, req, resp, resource, req_succeeded):
+        if not req_succeeded or 'result' not in req.context:
             return
         resp.content_type = 'application/json'
         resp.body = json.dumps(req.context['result'])
         print("JSON:", repr(req.context['result']), file=sys.stderr)
 
 class CORS(object):
-    def process_response(self, req, resp, resource):
+    def process_response(self, req, resp, resource, req_succeeded):
         resp.set_header('Access-Control-Allow-Origin', '*')
         resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
 
 class SpeakersResource(object):
     def __init__(self):
-        if SPEAKERS:
-            speakers = [soco.SoCo(address) for address in SPEAKERS.split(",")]
+        self.speakers = None
+
+    def initialize(self):
+        if self.speakers is not None:
+            return
+        if os.environ.get("SPEAKERS"):
+            print(repr(os.environ["SPEAKERS"]), file=sys.stderr)
+            speakers = [soco.SoCo(address) for address in os.environ["SPEAKERS"].split(",")]
         else:
-            speakers = soco.discover()
+            speakers = soco.discover(interface_addr=os.environ.get("DISCOVER_IF"))
+            print(repr(speakers), file=sys.stderr)
+        sys.stderr.flush()
         if speakers is None:
             speakers = []
         self.speakers = {
-            speaker.uid: speaker
+            speaker.get_speaker_info()["mac_address"]: speaker
             for speaker in speakers
         }
 
     def as_json(self, speaker, name=None):
+        speaker_info = speaker.get_speaker_info()
         result = {
-            'uid': speaker.uid,
-            'speaker_info': speaker.get_speaker_info(),
-            'name': speaker.player_name,
+            'uid': speaker_info["mac_address"],
+            'speaker_info': speaker_info,
+            'name': speaker_info["zone_name"],
             'volume': speaker.volume,
             'is_playing': {
                 'tv': speaker.is_playing_tv,
@@ -82,8 +91,13 @@ class SpeakersResource(object):
         resp.status = falcon.HTTP_204
 
     def on_get(self, req, resp, uid=None):
+        self.initialize()
         if uid is not None:
-            result = self.as_json(self.speakers[uid])
+            try:
+                result = self.as_json(self.speakers[uid])
+            except KeyError:
+                print(repr((uid, self.speakers)), file=sys.stderr)
+                raise
         else:
             name = req.get_param('name')
             result = {
@@ -98,6 +112,7 @@ class SpeakersResource(object):
         req.context['result'] = result
 
     def on_post(self, req, resp, uid):
+        self.initialize()
         speaker = self.speakers[uid]
 
         if 'volume' in req.context['input']:
@@ -128,7 +143,7 @@ application.add_route('/api/v1/speakers/{uid}', SpeakersResource())
 application.add_route('/api/v1/speakers', SpeakersResource())
 application.add_sink(static_ui)
 
-default_port = 8080
+default_port = int(os.environ.get("PORT", "8080"))
 
 if "SNAP_DATA" in os.environ:
     options_dir = os.path.join(os.environ["SNAP_DATA"], "options")
@@ -137,13 +152,24 @@ if "SNAP_DATA" in os.environ:
             default_port = int(file.read().strip())
     if os.path.isfile(os.path.join(options_dir, "speakers")):
         with open(os.path.join(options_dir, "speakers")) as file:
-            SPEAKERS = file.read().strip()
+            SPEAKERS = file.read().strip().split(",")
+
+def speaker_address(speaker):
+    if os.path.isfile(speaker):
+        with open(speaker, "r") as file:
+            return file.read().strip()
+    return speaker
 
 def main():
     global SPEAKERS
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", "-p", type=int, default=default_port)
+    parser.add_argument("speakers", metavar="SPEAKER", nargs="*")
     arguments = parser.parse_args()
+    if arguments.speakers:
+        speakers = [speaker_address(speaker) for speaker in arguments.speakers]
+        os.environ["SPEAKERS"] = ",".join(speakers)
+    sys.stderr.flush()
     gunicorn = os.path.join(os.path.dirname(sys.argv[0]), "gunicorn")
     os.execv(gunicorn,
              [gunicorn, "-b", ":{}".format(arguments.port), "sonosvolume:application"])

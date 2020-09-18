@@ -7,12 +7,6 @@ setup(name='sonosvolume',
       author_email='jl@jenswidell.se',
       license='MIT',
       packages=['sonosvolume'],
-      install_requires=[
-          'falcon',
-          'gunicorn',
-          'pylev',
-          'soco',
-      ],
       include_package_data=True,
       zip_safe=False,
       entry_points={
